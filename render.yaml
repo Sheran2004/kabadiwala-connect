@@ -1,0 +1,51 @@
+# Render Blueprint: New + > Blueprint > pick your GitHub repo.
+# Database = Neon (free Postgres that does not expire). Paste its connection string as DATABASE_URL when Render asks.
+services:
+  - type: web
+    name: kabadiwala-api
+    runtime: docker
+    rootDir: backend
+    plan: free                 # sleeps after ~15 min idle; first request then takes up to a minute
+    healthCheckPath: /health
+    envVars:
+      - key: KC_ENV
+        value: production
+      - key: DATABASE_URL      # Neon connection string, e.g. postgresql://user:pass@host/db?sslmode=require
+        sync: false
+      - key: KC_JWT_SECRET
+        generateValue: true
+      - key: KC_ORIGINS        # your website URL (no trailing slash), set after the first deploy
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ADMIN_PHONE       # your real admin number (10 digits)
+        sync: false
+      - key: ADMIN_PASSWORD    # 10+ characters, nothing common
+        sync: false
+      - key: SMS_PROVIDER      # console (demo) | fast2sms (real SMS, needs a recharged account)
+        value: console
+      - key: KC_DEBUG_OTP      # "1" = OTP shown on screen. DEMO ONLY. Delete when real SMS works.
+        value: "1"
+      - key: FAST2SMS_KEY
+        sync: false
+      - key: FAST2SMS_ROUTE
+        value: q
+  - type: web
+    name: kabadiwala-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: |
+      echo "window.KC_API = \"$KC_API_URL\";" > config.js
+    staticPublishPath: .
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer
+    envVars:
+      - key: KC_API_URL        # your API URL, e.g. https://kabadiwala-api.onrender.com
+        sync: false
